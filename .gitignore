@@ -1,0 +1,11 @@
+.idea
+.bin
+.include
+.lib
+pip-selfcheck.json
+.pip-selfcheck.json
+idea
+lib
+include
+bin
+.idea/workspace.xml

@@ -6,7 +6,6 @@ from functools import wraps
 from bson import json_util, ObjectId
 import json
 
-
 emissionNamespace = Namespace('emission')
 
 parser = reqparse.RequestParser()
