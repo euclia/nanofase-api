@@ -9,3 +9,12 @@ lib
 include
 bin
 .idea/workspace.xml
+/bin
+/lib
+/include
+include/
+bin/
+lib/
+.idea/
+./idea
+.idea/workspace.xml
