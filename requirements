@@ -1,0 +1,7 @@
+flask
+flask-restplus
+Flask-OIDC
+requests
+flask-cors
+pymongo
+flask-restx
