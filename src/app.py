@@ -5,6 +5,7 @@ from flask_restx import Api
 h = httplib2.Http(".cache", disable_ssl_certificate_validation=True)
 from flask_cors import CORS
 from src.namespaces.emissions_namespace import emissionNamespace as emissionApi
+from src.namespaces.scenario_namespace import scenariosNamespace as scenarioApi
 from src.globals.globals import oidc, mongoClient
 import os
 import json
@@ -74,6 +75,7 @@ nfapi = Api(app=app, version='1.0'
 # ddapi.specs_url = specs_url()
 
 nfapi.add_namespace(emissionApi)
+nfapi.add_namespace(scenarioApi)
 # ddapi.add_namespace(imageApi)
 # ddapi.add_namespace(taskApi)
 

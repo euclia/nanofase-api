@@ -5,36 +5,24 @@ from src.globals.globals import oidc, mongoClient
 from functools import wraps
 from bson import json_util, ObjectId
 import json
+import string
+import random
 
-emissionNamespace = Namespace('emission')
+
+scenariosNamespace = Namespace('scenario')
 
 parser = reqparse.RequestParser()
 parser.add_argument('skip', type=int, help='skip tasks')
 parser.add_argument('maximum', type=int, help='maximum tasks returned')
 parser.add_argument('id', type=str, help='task id')
 
-properties = emissionNamespace.model('Properties',{
-    'title': fields.String(description="Emissions title"),
-    'date': fields.Integer(description="Emissions creation date"),
-    'description': fields.Integer(description="Emissions description"),
-    'nanomaterial': fields.String(description="Emissions nanomaterial"),
-    'compartment': fields.String(description="Emissions compartment"),
-    'form': fields.String(description="form"),
-    'temporalProfile': fields.String(description="temporalProfile"),
-    'saved': fields.Boolean(description="Saved or not on database")
-})
 
-geometry = emissionNamespace.model('Geometry',{
-    'coordinates': fields.Arbitrary(description="Emissions coordinates"),
-    'type': fields.String(description="Geometry type"),
-})
-
-emission_model = emissionNamespace.model('Emission', {
-    'id': fields.String(description="Emissions ID"),
-    'properties': fields.Nested(properties, description="Emissions properties"),
+scenario_model = scenariosNamespace.model('Scenario', {
+    'title': fields.String(description="Scenarios title"),
+    'description': fields.String(description="Scenarios description"),
     'userId': fields.String(description='users id'),
-    'geometry': fields.Nested(geometry, description="Emissions properties"),
-    'type': fields.String(description="Mapbox type")
+    'emissions': fields.List(fields.String,description="Scenarios emissions"),
+    'date': fields.Integer(description="Scenarios date of creation")
 })
 
 
@@ -62,14 +50,14 @@ def token_required(f):
     return decorated
 
 
-@emissionNamespace.route('/', methods=['POST', 'PUT', 'GET', 'DELETE'])
+@scenariosNamespace.route('/', methods=['POST', 'PUT', 'GET', 'DELETE'])
 class MainClass(Resource):
 
-    @emissionNamespace.doc(responses={200: 'OK', 400: 'Bad request', 500: 'Server Error'}, security='Bearer')
+    @scenariosNamespace.doc(responses={200: 'OK', 400: 'Bad request', 500: 'Server Error'}, security='Bearer')
     # @taskNamespace.model(task_model)
-    @emissionNamespace.param('id', 'id')
-    @emissionNamespace.param('skip', 'skip')
-    @emissionNamespace.param('maximum', 'maximum')
+    @scenariosNamespace.param('id', 'id')
+    @scenariosNamespace.param('skip', 'skip')
+    @scenariosNamespace.param('maximum', 'maximum')
     @token_required
     # @taskNamespace.marshal_with(task_model, as_list=True)
     def get(self,):
@@ -86,8 +74,8 @@ class MainClass(Resource):
         userid = oidc.user_getfield('sub', token)
         if id is None:
             query = {"userId": userid}
-            tasks_c = mongoClient['emission'].find(query).sort([( "properties.date" , -1)]).skip(skip).limit(maximum)
-            total = mongoClient['emission'].count(query)
+            tasks_c = mongoClient['scenario'].find(query).sort([( "properties.date" , -1)]).skip(skip).limit(maximum)
+            total = mongoClient['scenario'].count(query)
             emmisions = []
             for t in tasks_c:
                 emmisions.append(json_util.dumps(t))
@@ -97,59 +85,64 @@ class MainClass(Resource):
             return resp
         else:
             query = {"_id": id}
-            task = mongoClient['emission'].find_one(query)
+            task = mongoClient['scenario'].find_one(query)
             resp = Response(json_util.dumps(task))
             resp.headers["Access-Control-Expose-Headers"] = '*'
             return resp
 
-    @emissionNamespace.doc(responses={200: 'OK', 400: 'Bad request', 500: 'Server Error'}, security='Bearer')
-    @emissionNamespace.expect(emission_model)
+    @scenariosNamespace.doc(responses={200: 'OK', 400: 'Bad request', 500: 'Server Error'}, security='Bearer')
+    @scenariosNamespace.expect(scenario_model)
     # @imageNamespace.model(models.Image)
     @token_required
     def post(self):
         token = request.headers['Authorization']
         token = token.split(" ")[1]
         userid = oidc.user_getfield('sub', token)
-        emission = request.json
-        emission['userId'] = userid
-        emission['_id'] = emission['id']
-        emission['properties']['saved'] = True
+        scenario = request.json
+        scenario['userId'] = userid
+        scenario['_id'] = randomString(14)
         # _emission = mongoClient['prediction'].insert_one(prediction).inserted_id
-        mongoClient['emission'].insert_one(emission)
-        resp = Response(json.dumps(emission))
+        mongoClient['scenario'].insert_one(scenario)
+        resp = Response(json.dumps(scenario))
         resp.headers["Access-Control-Expose-Headers"] = '*'
         return resp
 
-    @emissionNamespace.doc(responses={200: 'OK', 400: 'Bad request', 500: 'Server Error'}, security='Bearer')
-    @emissionNamespace.expect(emission_model)
+    @scenariosNamespace.doc(responses={200: 'OK', 400: 'Bad request', 500: 'Server Error'}, security='Bearer')
+    @scenariosNamespace.expect(scenario_model)
     # @imageNamespace.model(models.Image)
     @token_required
     def put(self):
         token = request.headers['Authorization']
         token = token.split(" ")[1]
         userid = oidc.user_getfield('sub', token)
-        emission = request.json
-        myquery = {"$and": [{"userId": userid}, {"_id": emission['id']}]}
-        update = {"$set": {"geometry":  emission['geometry'], "properties": emission["properties"]}}
-        mongoClient['emission'].update_one(myquery, update)
-        resp = Response(json.dumps(emission))
+        scenario = request.json
+        myquery = {"$and": [{"userId": userid}, {"_id": scenario['id']}]}
+        update = {"$set": {"emissions":  scenario['emissions'], "title": scenario["title"], "description": scenario["description"]}}
+        mongoClient['scenario'].update_one(myquery, update)
+        resp = Response(json.dumps(scenario))
         resp.headers["Access-Control-Expose-Headers"] = '*'
         return resp
 
 
 
-@emissionNamespace.route('/<string:emission_id>')
+@scenariosNamespace.route('/<string:scenario_id>')
 class DeleteEmission(Resource):
-    @emissionNamespace.doc(responses={200: 'OK', 400: 'Bad request', 500: 'Server Error'},
+    @scenariosNamespace.doc(responses={200: 'OK', 400: 'Bad request', 500: 'Server Error'},
                                                      security='Bearer')
-    @emissionNamespace.expect(emission_model)
+    @scenariosNamespace.expect(scenario_model)
     @token_required
-    def delete(self, emission_id):
+    def delete(self, scenario_id):
         token = request.headers['Authorization']
         token = token.split(" ")[1]
         userid = oidc.user_getfield('sub', token)
-        myquery = {"$and": [{"userId": userid}, {"_id": emission_id}]}
-        mongoClient['emission'].delete_one(myquery)
+        myquery = {"$and": [{"userId": userid}, {"_id": scenario_id}]}
+        mongoClient['scenario'].delete_one(myquery)
         resp = Response(json.dumps({"deleted": 1}))
         resp.headers["Access-Control-Expose-Headers"] = '*'
         return resp
+
+
+def randomString(stringLength=10):
+    """Generate a random string of letters, digits """
+    password_characters = string.ascii_letters + string.digits + string.ascii_letters + string.digits
+    return ''.join(random.choice(password_characters) for i in range(stringLength))
