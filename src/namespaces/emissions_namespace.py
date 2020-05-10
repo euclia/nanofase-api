@@ -93,7 +93,7 @@ class MainClass(Resource):
                 emmisions.append(json_util.dumps(t))
             resp = Response(json.dumps(emmisions))
             resp.headers["Access-Control-Expose-Headers"] = '*'
-            resp.headers["Access-Control-Expose-Headers"] = total
+            resp.headers["total"] = total
             return resp
         else:
             query = {"_id": id}
