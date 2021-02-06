@@ -76,6 +76,7 @@ ENV MODEL_VARS='/nanofase-api/src/data/model/data/model_vars.yaml'
 ENV MODEL_CONFIG='/nanofase-api/src/data/config.nml'
 ENV MODEL_PATH='/nanofase/bin/main'
 
+
 CMD ["python3.8", "nanofase-api/src/app.py" ]
 #RUN git clone --recurse-submodules https://${GITHUB_UN}:${GITHUB_PAS}@github.com/nerc-ceh/nanofase.git && \
 #    cd nanofase && \
