@@ -18,3 +18,11 @@ lib/
 .idea/
 ./idea
 .idea/workspace.xml
+/src/db/__pycache__/
+/src/globals/__pycache__/
+/src/namespaces/__pycache__/
+/src/simulation/__pycache__/
+/src/globals/__pycache__/
+src/namespaces/__pycache__/emissions_namespace.cpython-37.pyc
+src/namespaces/__pycache__/__init__.cpython-37.pyc
+src/globals/__pycache__/mongodb.cpython-37.pyc
