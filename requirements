@@ -5,3 +5,13 @@ requests
 flask-cors
 pymongo
 flask-restx
+rasterio
+convertbng
+pandas
+geopandas
+f90nml
+netCDF4
+pint
+ruamel.yaml
+pyyaml
+httplib2

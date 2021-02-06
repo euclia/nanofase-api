@@ -4,11 +4,10 @@
 		"auth_uri": "https://login.cloud.nanosolveit.eu/auth/realms/nanosolveit/protocol/openid-connect/auth",
 		"client_id": "nanofase-api",
 		"client_secret": "346179e8-ed0f-495e-8073-144c00e78c92",
-		"redirect_uris": ["https://nanofase-api.cloud.nanosolveit.eu/*"],
+		"redirect_uris": ["https://nanofaseapi.cloud.nanosolveit.eu/*"],
 		"userinfo_uri": "https://login.cloud.nanosolveit.eu/auth/realms/nanosolveit/protocol/openid-connect/userinfo",
 		"token_uri": "https://login.cloud.nanosolveit.eu/auth/realms/nanosolveit/protocol/openid-connect/token",
 		"token_introspection_uri": "https://login.cloud.nanosolveit.eu/auth/realms/nanosolveit/protocol/openid-connect/token/introspect",
 		"debug":"true"
 	}
 }
-

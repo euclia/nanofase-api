@@ -1,0 +1,61 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: nanofase-api
+  namespace: nanofase
+spec:
+  selector:
+    app: nanofase-api
+  ports:
+  - protocol: TCP
+    port: 5000
+    targetPort: 5000
+---
+apiVersion: apps/v1 # for versions before 1.8.0 use apps/v1
+kind: Deployment
+metadata:
+  name: nanofase-api
+  namespace: nanofase
+spec:
+  selector:
+    matchLabels:
+      app: nanofase-api
+  replicas: 1 # tells deployment to run 2 pods matching the template
+  template: # create pods using pod definition in this template
+    metadata:
+      name: nanofase-api
+      labels:
+        app: nanofase-api
+    spec:
+      containers:
+      - name: nanofase-api
+        image: nanosolveit/nanofase-api
+        ports:
+        - containerPort: 5000
+        env:
+          - name: MONGO_URI
+            value: "mongodb://mongodb-service.dbs:27017"
+          - name: DATA_PATH
+            value: "/nanofase-api/src/data"
+          - name: MODEL_DATA
+            value: "/nanofase-api/src/data/model/data/constants/thames_tio2_2015/"
+          - name: MODEL_VARS
+            value: "/nanofase-api/src/data/model/data/model_vars.yaml"
+          - name: MODEL_CONFIG
+            value: "/nanofase-api/src/data/config.nml"
+          - name: MODEL_PATH
+            value: "/nanofase/bin/main"
+        volumeMounts:
+        - name: workdir
+          mountPath: /nanofase-api/conf
+      initContainers:
+      - name: config-data
+        image: busybox
+        command: ["sh", "-c", "echo \"{\\\"web\\\": { \\\"issuer\\\": \\\"https://login.cloud.nanosolveit.eu/auth/realms/nanosolveit\\\", \\\"auth_uri\\\": \\\"https://login.cloud.nanosolveit.eu/auth/realms/nanosolveit/protocol/openid-connect/auth\\\", \\\"client_id\\\": \\\"nanofase-api\\\", \\\"client_secret\\\": \\\"346179e8-ed0f-495e-8073-144c00e78c92\\\", \\\"redirect_uris\\\": [ \\\"https://nanofaseapi.cloud.nanosolveit.eu/*\\\" ], \\\"userinfo_uri\\\":  \\\"https://login.cloud.nanosolveit.eu/auth/realms/nanosolveit/protocol/openid-connect/userinfo\\\", \\\"token_uri\\\": \\\"https://login.cloud.nanosolveit.eu/auth/realms/nanosolveit/protocol/openid-connect/token\\\", \\\"token_introspection_uri\\\": \\\"https://login.cloud.nanosolveit.eu/auth/realms/nanosolveit/protocol/openid-connect/token/introspect\\\" } }\" > /work-dir/client_s.json"]
+        volumeMounts:
+        - name: workdir
+          mountPath: "/work-dir"
+      volumes:
+      - name: workdir
+        emptyDir: {}
+---
