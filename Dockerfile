@@ -78,19 +78,3 @@ ENV MODEL_PATH='/nanofase/bin/main'
 
 
 CMD ["python3.8", "nanofase-api/src/app.py" ]
-#RUN git clone --recurse-submodules https://${GITHUB_UN}:${GITHUB_PAS}@github.com/nerc-ceh/nanofase.git && \
-#    cd nanofase && \
-#    cp Makefile.example Makefile && \
-#    mkdir ./bin && \
-#    mkdir ./log && \
-#    mkdir ./data/output && \
-#    make WARNINGS=-w
-
-
-# docker build -t nanofase-api . --build-arg GITHUB_UN=pantelispanka --build-arg GITHUB_PAS=dr,dt,n883
-# docker build -t nanofase-api . --build-arg GITHUB_ACCESS_TOKEN=da9f1e576d8b85eba6eb17be94c0e721b54af053
-
-# nanofase model in the docker --> nanofase/bin/main
-# Python --> python3.8
-
-# docker run -it --name nanof -p 5001:5000 -e MONGO_URI=mongodb://172.17.0.2:27017 -e DATA_PATH=/nanofase-api/src/data -e MODEL_DATA=/nanofase-api/src/data/model/data/constants/thames_tio2_2015/ -e MODEL_VARS=/nanofase-api/src/data/model/data/model_vars.yaml -e MODEL_CONFIG=/nanofase-api/src/data/config.nml -e MODEL_PATH=/nanofase/bin/main -d nanofase-api

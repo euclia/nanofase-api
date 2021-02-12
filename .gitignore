@@ -26,3 +26,4 @@ lib/
 src/namespaces/__pycache__/emissions_namespace.cpython-37.pyc
 src/namespaces/__pycache__/__init__.cpython-37.pyc
 src/globals/__pycache__/mongodb.cpython-37.pyc
+/build.txt
