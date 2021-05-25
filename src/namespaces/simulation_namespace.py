@@ -19,6 +19,8 @@ parser.add_argument('maximum', type=int, help='maximum simulations returned')
 parser.add_argument('id', type=str, help='simulation id')
 parser.add_argument('day', type=str, help='simulation day (only with id)')
 parser.add_argument('output_type', type=str, help='simulation output type')
+parser.add_argument('x', type=int, help='x value of point')
+parser.add_argument('y', type=int, help='y value of point')
 
 scenario_model = simulationsNamespace.model('Simulation', {
     'title': fields.String(description="Scenarios title"),
@@ -75,6 +77,8 @@ class MainClass(Resource):
     @simulationsNamespace.param('maximum', 'maximum')
     @simulationsNamespace.param('day', 'day')
     @simulationsNamespace.param('output_type', 'type')
+    @simulationsNamespace.param('x', 'x')
+    @simulationsNamespace.param('y', 'y')
     @token_required
     # @taskNamespace.marshal_with(task_model, as_list=True)
     def get(self,):
@@ -84,6 +88,8 @@ class MainClass(Resource):
         maximum = args.get('maximum')
         day = args.get('day')
         output_type = args.get('output_type')
+        x = args.get('x')
+        y = args.get('y')
         if skip is None:
             skip = 0
         if maximum is None:
@@ -102,12 +108,42 @@ class MainClass(Resource):
             resp.headers["Access-Control-Expose-Headers"] = '*'
             resp.headers["total"] = total
             return resp
-        elif id is not None and day is None:
+        elif id is not None and day is None and x is None and y is None:
             query = {"_id": id}
             task = mongoClient['simulation'].find_one(query)
             resp = Response(json_util.dumps(task))
             resp.headers["Access-Control-Expose-Headers"] = '*'
             return resp
+        elif id is not None and x is not None and y is not None:
+            query = {"simulationId": id}
+            out_all = []
+            if output_type == 'water':
+                output = mongoClient['output_water'].find(query)
+                for o in output:
+                    for p in o['features']:
+                        if p['properties']['x'] == x and p['properties']['y'] == y:
+                            out_all.append(p['properties'])
+                resp = Response(json_util.dumps(out_all))
+                resp.headers["Access-Control-Expose-Headers"] = '*'
+                return resp
+            if output_type == 'soil':
+                output = mongoClient['output_soil'].find(query)
+                for o in output:
+                    for p in o['features']:
+                        if p['properties']['x'] == x and p['properties']['y'] == y:
+                            out_all.append(p['properties'])
+                resp = Response(json_util.dumps(out_all))
+                resp.headers["Access-Control-Expose-Headers"] = '*'
+                return resp
+            if output_type == 'sediment':
+                output = mongoClient['output_sediment'].find(query)
+                for o in output:
+                    for p in o['features']:
+                        if p['properties']['x'] == x and p['properties']['y'] == y:
+                            out_all.append(p['properties'])
+                resp = Response(json_util.dumps(out_all))
+                resp.headers["Access-Control-Expose-Headers"] = '*'
+                return resp
         else:
             query = {"$and": [{"simulationId": id}, {"day": int(day)}]}
             if output_type == 'water':

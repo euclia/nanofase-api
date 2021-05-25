@@ -27,3 +27,10 @@ src/namespaces/__pycache__/emissions_namespace.cpython-37.pyc
 src/namespaces/__pycache__/__init__.cpython-37.pyc
 src/globals/__pycache__/mongodb.cpython-37.pyc
 /build.txt
+src/data/model/data/constants/
+*.tif
+*.zip
+src/data/model/.DS_Store
+src/data/model/data/.DS_Store
+*.zip
+*.tif

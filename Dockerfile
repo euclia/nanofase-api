@@ -47,7 +47,7 @@ RUN apt update && \
 
 RUN cd /
 # Clone NanoFASE repo, create Makefile and a few required directories
-RUN git clone --recurse-submodules https://${GITHUB_ACCESS_TOKEN}@github.com/nerc-ceh/nanofase.git && \
+RUN git clone -b 0.0.1 --recurse-submodules https://${GITHUB_ACCESS_TOKEN}@github.com/nerc-ceh/nanofase.git && \
     cd nanofase && \
     cp Makefile.example Makefile && \
     mkdir ./bin && \
@@ -56,6 +56,7 @@ RUN git clone --recurse-submodules https://${GITHUB_ACCESS_TOKEN}@github.com/ner
     mkdir ./data/output && \
     make release
 
+RUN apt install -y  python-numpy gdal-bin libgdal-dev
 
 RUN mkdir nanofase-api
 
@@ -75,6 +76,6 @@ ENV MODEL_DATA='/nanofase-api/src/data/model/data/constants/thames_tio2_2015/'
 ENV MODEL_VARS='/nanofase-api/src/data/model/data/model_vars.yaml'
 ENV MODEL_CONFIG='/nanofase-api/src/data/config.nml'
 ENV MODEL_PATH='/nanofase/bin/main'
-
+ENV GDAL_DATA='/usr/share/gdal'
 
 CMD ["python3.8", "nanofase-api/src/app.py" ]

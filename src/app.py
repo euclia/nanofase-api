@@ -17,7 +17,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 with open('/nanofase-api/src/config/client_s.json') as json_file:
     data = json.load(json_file)
 
-# with open('/Users/pantelispanka/Jaqpot/nanofase-api/src/config/client_s.json') as json_file:
+# with open('/Users/pantelispanka/Jaqpot/NanoSolveit/nanofase-api/src/config/client_s.json') as json_file:
 #     data = json.load(json_file)
 
 # with open('/conf/client_s.json') as json_file:
@@ -51,7 +51,7 @@ app.config.update({
 #     'SECRET_KEY': client_secret,
 #     'TESTING': True,
 #     'DEBUG': True,
-#     'OIDC_CLIENT_SECRETS': "/Users/pantelispanka/Jaqpot/nanofase-api/src/config/client_s.json",
+#     'OIDC_CLIENT_SECRETS': "/Users/pantelispanka/Jaqpot/NanoSolveit/nanofase-api/src/config/client_s.json",
 #     'OIDC_ID_TOKEN_COOKIE_SECURE': False,
 #     'OIDC_REQUIRE_VERIFIED_EMAIL': False,
 #     'OIDC_USER_INFO_ENABLED': True,
@@ -90,8 +90,8 @@ if os.environ.get('HTTPS'):
 
 
 nfapi = Api(app=app, version='1.0'
-            , title="NanoFase"
-            , description='NanoFase API', authorizations=authorizations)
+            , title="NanoFASE"
+            , description='NanoFASE API', authorizations=authorizations)
 
 # ddapi.specs_url = specs_url()
 

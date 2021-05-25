@@ -128,18 +128,22 @@ class Compiler:
         self.parse_constants()
         # Spatial, non-temporal data
         for var in self.vars_spatial:
+            print("parse_spatial_var")
             print(f'\t...{var}')
             self.parse_spatial_var(var)
         # Spatial data with 1 record dimension (that isn't time)
         for var in self.vars_spatial_1d:
+            print("parse_spatial_1d_var")
             print(f'\t...{var}')
             self.parse_spatial_1d_var(var)
         # Spatial point data
         for var in self.vars_spatial_point:
+            print("parse_spatial_point_var")
             print(f'\t...{var}')
             self.parse_spatial_point_var(var)
         # Spatiotemporal data
         for var in self.vars_spatiotemporal:
+            print("parse_spatiotemporal_var")
             print(f'\t...{var}')
             self.parse_spatiotemporal_var(var)
         # We're done! Report where the data have been saved to
@@ -607,6 +611,22 @@ class Compiler:
 
             # Sum all the contributors to each NF cat
             nf_final_arrs = {name: np.sum(nf_cat_arr, axis=0) for name, nf_cat_arr in nf_cat_arrs.items()}
+            # print("11")
+            # try:
+            #     print("11.5")
+            #     nf_final_arrs = {}
+            #     for name, nf_cat_arr in nf_cat_arrs.items():
+            #         try:
+            #             print(name)
+            #             nf_final_arrs[name] = np.sum(nf_cat_arr, axis=0)
+            #             print("done adding" + name)
+            #         except Exception as e:
+            #             print(e)
+            #     # nf_final_arrs = {name: np.sum(nf_cat_arr, axis=0) for name, nf_cat_arr in nf_cat_arrs.items()}
+            #     # print(nf_final_arrs)
+            #     print(11.8)
+            # except Exception as e:
+            #     print(e)
 
             # Reproject the higher res NF cat to NF model res (defined by grid rs),
             # using the average resampling method to get the fraction cover for each cell.
