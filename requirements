@@ -17,3 +17,5 @@ pint==0.16.1
 ruamel.yaml
 pyyaml
 httplib2
+jaqpotpy
+tornado

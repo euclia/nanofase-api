@@ -22,7 +22,8 @@ scenario_model = scenariosNamespace.model('Scenario', {
     'description': fields.String(description="Scenarios description"),
     'userId': fields.String(description='users id'),
     'emissions': fields.List(fields.String,description="Scenarios emissions"),
-    'date': fields.Integer(description="Scenarios date of creation")
+    'date': fields.Integer(description="Scenarios date of creation"),
+    'pbpk': fields.Boolean(description="Add PBPK outputs")
 })
 
 

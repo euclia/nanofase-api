@@ -25,6 +25,8 @@ from src.db.task_dao import TaskDao
 from shapely.geometry import Point
 import ast
 from multiprocessing import Queue, Process
+import pandas as pd
+from jaqpotpy import Jaqpot
 
 
 taskDao = TaskDao(mongoClient=mongoClient)
@@ -33,6 +35,10 @@ taskDao = TaskDao(mongoClient=mongoClient)
 # export PYTHONPATH="/home/pantelispanka/Jaqpot/nanofase-api"
 
 def run_simulation(simulation, task, userId):
+
+    addPbpk = bool(simulation['pbpk'])
+    pbpkDays = int(simulation['pbpkDays'])
+    simulationId = simulation['_id']
 
     try:
         point_emissions = []
@@ -54,7 +60,6 @@ def run_simulation(simulation, task, userId):
         areal_emissions_transformed_soil = []
         areal_emissions_dissolved_soil = []
 
-
         for em in simulation['emissions']:
             query = {"_id": em}
             emis = mongoClient['emission'].find_one(query)
@@ -63,7 +68,6 @@ def run_simulation(simulation, task, userId):
             with open(json_file, 'w') as f:
                 if emis['geometry']['type'] == "Point":
 
-
                     project = partial(
                         pyproj.transform,
                         pyproj.Proj(init='epsg:4326'),  # Source coordinate system (WGS84)
@@ -71,10 +75,6 @@ def run_simulation(simulation, task, userId):
                     # Do the transformation
 
                     geom_transformed = sh.ops.transform(project, shape(emis['geometry']))
-                    # print(geom_transformed)
-                    # coos = convert_bng(emis['geometry']['coordinates'][0], emis['geometry']['coordinates'][1])
-                    # emis['geometry']['coordinates'][0] = coos[0][0]
-                    # emis['geometry']['coordinates'][1] = coos[1][0]
                     jt = gpd.GeoSeries([geom_transformed]).to_json()
                     jt = json.loads(jt)
                     emis['geometry']['coordinates'] = jt['features'][0]['geometry']['coordinates']
@@ -495,7 +495,7 @@ def run_simulation(simulation, task, userId):
         taskNew['percentage'] = 22
         task = taskDao.update_task(task, taskNew)
 
-        subprocess.call([model_path, model_conf_file])
+        # subprocess.call([model_path, model_conf_file])
 
         taskNew['messages'].append("Model finished. Processing output")
         task = taskDao.update_task(task, taskNew)
@@ -508,13 +508,15 @@ def run_simulation(simulation, task, userId):
         out_sediment = path + "/output_sediment.csv"
         out_soil = path + "/output_soil.csv"
         out_water = path + "/output_water.csv"
-        # read(out_sediment, simulation['_id'], 'output_sediment', userId=userId, task=task, queue=t1q)
+
+
+        # read(out_sediment, simulation['_id'], 'output_sediment', userId=userId, task=task, queue=t1q, pbpk=addPbpk)
         # taskNew['messages'].append("Sediment output finished")
         # task = taskDao.update_task(task, taskNew)
-        # read(out_soil, simulation['_id'], 'output_soil', userId=userId, task=task, queue=t2q)
+        # read(out_soil, simulation['_id'], 'output_soil', userId=userId, task=task, queue=t2q, pbpk=addPbpk)
         # taskNew['messages'].append("Soil output finished")
         # task = taskDao.update_task(task, taskNew)
-        # read(out_water, simulation['_id'], 'output_water', userId=userId, task=task, queue=t3q)
+        # read(out_water, simulation['_id'], 'output_water', userId=userId, task=task, queue=t3q, pbpk=addPbpk)
 
         p1 = Process(target=read, args=(out_sediment, simulation['_id'], 'output_sediment', userId, task, t1q))
         p1.daemon = True
@@ -525,8 +527,8 @@ def run_simulation(simulation, task, userId):
         p3 = Process(target=read, args=(out_water, simulation['_id'], 'output_water', userId, task, t3q))
         p3.daemon = True
         p3.start()
-        p4 = Process(target=task_process, args=(task, t1q, t2q, t3q, userId))
-        p4.daemon = True
+        p4 = Process(target=task_process, args=(task, t1q, t2q, t3q, simulationId, userId, pbpkDays, addPbpk))
+        p4.daemon = False
         p4.start()
         p4.join()
 
@@ -568,69 +570,8 @@ def run_simulation(simulation, task, userId):
         #     os.remove(shp4_file)
 
 
-# def read(csv_f, simulationId, type, userId, task, queue):
-#     p = pyproj.Proj("EPSG:27700")
-#
-#     feat_col = {
-#         'type': 'FeatureCollection',
-#         'userID': userId,
-#         'simulationId': simulationId,
-#         'day': 0,
-#         'output_type': type,
-#     }
-#     all_docs = []
-#
-#     with open(csv_f, 'r') as csvfile:
-#         while True:
-#             row = csvfile.readline().split(',')
-#             if row[0] == 't':
-#                 keys = row
-#                 break
-#
-#         reader = csv.DictReader(csvfile, fieldnames=keys)
-#         old_t = -1
-#         for doc in reader:
-#
-#             props = {key: safe_transformation(val) for key, val in doc.items()}
-#
-#             if old_t != props['t']:
-#                 if old_t != -1:
-#                     # Post to Mongo
-#                     mongoClient[type].insert_one(feat_col)
-#                     # taskNew = {}
-#                     # taskNew = task
-#                     taskNew = taskDao.find_one(task)
-#                     taskNew['simulationKeys'].append(type + "_day_" + str(props['t']))
-#                     taskNew['percentage'] = task['percentage'] + 0.09
-#                     task = taskDao.update_task(task, taskNew)
-#
-#                     all_docs.append(feat_col.copy())
-#                 feat_col['day'] = props['t']
-#                 feat_col['features'] = []
-#                 old_t = props['t']
-#
-#             lon, lat = p(props['easts'], props['norths'], inverse=True)
-#
-#             feat_col['features'].append({
-#                 'type': 'Feature',
-#                 'properties': props,
-#                 'geometry': {
-#                     'type': 'Point',
-#                     'coordinates': [lon, lat]
-#                 }
-#
-#             })
-#
-#         all_docs.append(feat_col.copy())
-#     queue.put("Finished")
-
-
-def read(csv_f, simulationId, type, userId, task, queue):
+def read(csv_f, simulationId, type, userId, task, queue, pbpk=True):
     project = pyproj.Proj("EPSG:27700")
-    # project = partial(
-    #     pyproj.transform,
-    #     pyproj.Proj(init='epsg:27700'),  # Source coordinate system (WGS84)
-    #     pyproj.Proj(init='epsg:4326'))
     point_outputs = []
     with open(csv_f, newline='', mode='r') as csvfile:
         csv_reader = csv.reader(csvfile)
@@ -648,35 +589,47 @@ def read(csv_f, simulationId, type, userId, task, queue):
                     i = 1
                     day = "changed"
             if len(row) > 8 and i > -1 and row[0] != 't':
-
-                # for k in range(len(row)):
-                #     point = {}
-                #     point['simulationId'] = simulationId
-                #     if props[keys[k]] == 'x':
-                #         point['x'] = int(row[k])
-                #     if props[keys[k]] == 'y':
-                #         point['y'] = int(row[k])
-                #
-                # val = next((point for point in point_outputs if point["x"] == "Sam"), False)
-                # if poin
-                #
-                #
-                #
-                # for k in range(len(row)):
-                #     try:
-                #         props[keys[k]] = int(row[k])
-                #     except ValueError:
-                #         try:
-                #             props[keys[k]] = float("{:.28f}".format(float(row[k])))
-                #             # props[keys[k]] = float(row[k])
-                #         except ValueError:
-                #             props[keys[k]] = row[k]
-
                 if day == "changed":
                     try:
+                        if pbpk:
+                            if len(point_outputs) == 0:
+                                for feat in feat_col['features']:
+                                    point_output = {}
+                                    point_output['x'] = feat['properties']['x']
+                                    point_output['y'] = feat['properties']['y']
+                                    point_output['geometry'] = feat['geometry']
+                                    if next((x for x in point_outputs if
+                                             x['x'] == feat['properties']['x'] and x['y'] == feat['properties']['y']),
+                                            None) == None:
+                                        point_outputs.append(point_output)
+                                for index, value in enumerate(point_outputs):
+                                    feat = next((feat for feat in feat_col['features'] if
+                                                 value['x'] == feat['properties']['x'] and value['y'] ==
+                                                 feat['properties']['y']),
+                                                None)
+                                    for k, v in feat['properties'].items():
+                                        if k != 'x' and k != 'y':
+                                            try:
+                                                value[k].append(v)
+                                            except KeyError as e:
+                                                value[k] = []
+                                                value[k].append(v)
+                                            point_outputs[index] = value
+                            else:
+                                for index, value in enumerate(point_outputs):
+                                    feat = next((feat for feat in feat_col['features'] if
+                                                 value['x'] == feat['properties']['x'] and value['y'] ==
+                                                 feat['properties']['y']),
+                                                None)
+                                    for k, v in feat['properties'].items():
+                                        if k != 'x' and k != 'y':
+                                            try:
+                                                value[k].append(v)
+                                            except KeyError as e:
+                                                value[k] = []
+                                                value[k].append(v)
+                                            point_outputs[index] = value
                         mongoClient[type].insert_one(feat_col)
-                        # taskNew = {}
-                        # taskNew = task
                         taskNew = taskDao.find_one(task)
                         taskNew['simulationKeys'].append(type + "_day_" + str(i))
                         taskNew['percentage'] = task['percentage'] + 0.09
@@ -709,13 +662,7 @@ def read(csv_f, simulationId, type, userId, task, queue):
                                 norths = row[k]
 
                         lon, lat = project(props['easts'], props['norths'], inverse=True)
-                        # geom_transformed = sh.ops.transform(project, Point(ast.literal_eval(easts) ,ast.literal_eval(norths)))
-                        # j = gpd.GeoSeries([geom_transformed]).to_json()
-                        # j = json.loads(j)
-                        # geometry['coordinates'] = j['features'][0]['geometry']['coordinates']
                         feat['properties'] = props
-                        # feat['geometry'] = geometry
-                        # geom = {"type": "Point", "coordinates": [lon, lat] }
                         st_end = [round(lon - 0.02, 4), round(lat - 0.018, 4)]
                         geom = {"type": "Polygon", "coordinates": [[st_end, [round(lon - 0.02, 4), round(lat + 0.02, 4)]
                             , [round(lon + 0.03, 4), round(lat + 0.02, 4)],
@@ -752,20 +699,13 @@ def read(csv_f, simulationId, type, userId, task, queue):
                             if keys[k] == 'norths':
                                 norths = row[k]
                         lon, lat = project(props['easts'], props['norths'], inverse=True)
-                        # geom_transformed = sh.ops.transform(project, Point(ast.literal_eval(easts)
-                        #                                                    ,ast.literal_eval(norths)))
-                        # j = gpd.GeoSeries([geom_transformed]).to_json()
-                        # j = json.loads(j)
-                        # geometry['coordinates'] = j['features'][0]['geometry']['coordinates']
                         feat['properties'] = props
-                        # geom = {"type": "Point", "coordinates": [lon, lat]}
                         st_end = [round(lon - 0.02, 4), round(lat - 0.018, 4)]
                         geom = {"type": "Polygon", "coordinates": [[st_end, [round(lon - 0.02, 4), round(lat + 0.02, 4)]
                             , [round(lon + 0.03, 4), round(lat + 0.02, 4)],
                                                                    [round(lon + 0.03, 4), round(lat - 0.018, 4)],
                                                                    st_end]]}
                         feat['geometry'] = geom
-                        # feat['geometry'] = geometry
                         feat_col['features'].append(feat)
                         feat_col['day'] = int(row[0])
                         day = "same"
@@ -790,26 +730,23 @@ def read(csv_f, simulationId, type, userId, task, queue):
                         if keys[k] == 'norths':
                             norths = row[k]
                     lon, lat = project(props['easts'], props['norths'], inverse=True)
-                    # geom_transformed = sh.ops.transform(project, Point(ast.literal_eval(easts)
-                    #                                                    ,ast.literal_eval(norths)))
-                    # j = gpd.GeoSeries([geom_transformed]).to_json()
-                    # j = json.loads(j)
-                    # geometry['coordinates'] = j['features'][0]['geometry']['coordinates']
                     feat['properties'] = props
-                    # geom = {"type": "Point", "coordinates": [lon, lat]}
                     st_end = [round(lon - 0.02, 4), round(lat - 0.018, 4)]
                     geom = {"type": "Polygon", "coordinates": [[st_end, [round(lon - 0.02, 4), round(lat + 0.02, 4)]
                                                                    , [round(lon + 0.03, 4), round(lat + 0.02, 4)],
                                                                 [round(lon + 0.03, 4), round(lat - 0.018, 4)],
                                                                 st_end]]}
                     feat['geometry'] = geom
-                    # feat['geometry'] = geometry
                     feat_col['features'].append(feat)
                     day = "same"
+    if pbpk:
+        for point in point_outputs:
+            point['simulationId'] = simulationId
+            mongoClient[type + "_points"].insert_one(point)
     queue.put("Finished")
 
 
-def task_process(task, t1q, t2q, t3q, userId):
+def task_process(task, t1q, t2q, t3q, simulationId, userId, pbdays, pbpk):
     p = True
     p1f = False
     p2f = False
@@ -841,13 +778,43 @@ def task_process(task, t1q, t2q, t3q, userId):
                 taskDao.update_task(task, task)
                 p3f = True
         if p1f and p2f and p3f:
+            if pbpk:
+                add_biouptake(task, simulationId, userId, pbdays)
+                print("The environmental simulation finished running. Creating biouptake predictions")
+                task = mongoClient['task'].find_one({"_id": task['_id']})
+                task['messages'].append("Processing outputs finished")
+                task['percentage'] = 100.00
+                taskDao.update_task(task, task)
+            else:
+                print("The simulation finished running. Last update for the Task")
+                task = mongoClient['task'].find_one({"_id": task['_id']})
+                task['messages'].append("Processing outputs finished")
+                task['percentage'] = 100.00
+                taskDao.update_task(task, task)
+            p = False
+            break
+
+
+def task_biouptake_process(task, queues):
+    p = True
+    check = []
+    for q in queues:
+        check.append(False)
+    p = True
+    while p:
+        for ind, q in enumerate(queues):
+            t = q.get()
+            if t == 'Finished':
+                check[ind] = True
+        result = all(ch is True for ch in check)
+        if result:
             print("The simulation finished running. Last update for the Task")
-            task = mongoClient['task'].find_one({"_id":task['_id']})
+            task = mongoClient['task'].find_one({"_id": task['_id']})
             task['messages'].append("Processing outputs finished")
             task['percentage'] = 100.00
             taskDao.update_task(task, task)
             p = False
-            break
+        break
 
 
 def safe_transformation(value):
@@ -855,3 +822,104 @@ def safe_transformation(value):
         return ast.literal_eval(value)
     except:
         return value
+
+
+def add_biouptake(task, simulationId, userId, pbpkDays):
+    query = {"simulationId": simulationId}
+    water_outs = list(mongoClient['output_water_points'].find(query))
+    sediment_outs = list(mongoClient['output_sediment_points'].find(query))
+    # soil_outs = mongoClient['output_water_points'].find(query)
+
+    multi_pbpk_dfs = []
+    for index, point_output in enumerate(water_outs):
+        C_sed = [element * 1000 for element in sediment_outs[index]['C_np_total(kg/kg)']]
+        C_Water = [element * 1000 for element in water_outs[index]['C_np(kg/m3)']]
+        C_water_dis = [element * 1000 for element in water_outs[index]['C_dissolved(kg/m3)']]
+        C_ss = [element * 1000 for element in water_outs[index]['C_spm(kg/m3)']]
+        x = water_outs[index]['x']
+        y = water_outs[index]['y']
+        if len(C_sed) < pbpkDays:
+            for i in range(pbpkDays - len(C_sed)):
+                C_sed.append(0.0)
+                C_Water.append(0.0)
+                C_water_dis.append(0.0)
+                C_ss.append(0.0)
+
+        time_vec = []
+        for day in range(pbpkDays):
+            time_vec.append(day + 1)
+
+        multi_pbpk_df = pd.DataFrame(columns=['material', 'sim.step', 'sim.start', 'sim.end', 'C_sed', 'C_Water',
+                                              'C_water_dis', 'C_ss', 'time_vec', 'x', 'y'])
+        row = {'material': "TiO2", 'sim.step': 1, 'sim.start': 1, 'sim.end': pbpkDays, 'C_sed': C_sed,
+               'C_water': C_Water, 'C_water_dis': C_water_dis, 'C_ss': C_ss, 'time_vec': time_vec,'x': x, 'y': y}
+        multi_pbpk_df = multi_pbpk_df.append(row, ignore_index=True)
+
+        multi_pbpk = {}
+        multi_pbpk['df'] = multi_pbpk_df
+        multi_pbpk['geometry'] = point_output['geometry']
+        multi_pbpk_dfs.append(multi_pbpk)
+
+
+    for day in range(pbpkDays):
+        day_sim = day + 1
+        feat_col = {}
+        feat_col['type'] = "FeatureCollection"
+        feat_col['simulationId'] = simulationId
+        feat_col['userId'] = userId
+        feat_col['day'] = day_sim
+        feat_col['features'] = []
+        mongoClient['output_biouptake'].insert_one(feat_col)
+        taskNew = taskDao.find_one(task)
+        taskNew['simulationKeys'].append("biouptake" + "_day_" + str(day_sim))
+        taskNew['percentage'] = task['percentage'] + 0.02
+        task = taskDao.update_task(task, taskNew)
+
+    chunks = [multi_pbpk_dfs[x:x + 25] for x in range(0, len(multi_pbpk_dfs), 25)]
+
+    queues = []
+    for c in chunks:
+        q = Queue()
+        queues.append(q)
+
+    processes = []
+    for ind, c in enumerate(chunks):
+        processes.append(Process(target=create_biouptake, args=(c, simulationId, queues[ind], task)))
+
+    for p in processes:
+        p.daemon = False
+        p.start()
+
+    tp = Process(target=task_biouptake_process, args=(task, queues))
+    tp.start()
+    tp.join()
+    # p = processes[len(processes) - 1]
+    # p.join()
+
+
+def create_biouptake(chunk, simulationId, bqueue, task):
+    jaqpot = Jaqpot('https://modelsbase.cloud.nanosolveit.eu/modelsbase/services/')
+    jaqpot.login('pantelispanka', 'kapan2')
+    for point in chunk:
+        preds, prediction = jaqpot.predict(point['df'], 'YxuV65I02bQkmeY5vWok')
+        for index, row in preds.iterrows():
+            feat = {}
+            props = {}
+            props['x'] = point['df']['x'].values[0]
+            props['y'] = point['df']['y'].values[0]
+            for index, val in row.iteritems():
+                if index == 'time':
+                    time = val
+                    props['t'] = int(val)
+                else:
+                    props[index] = val
+                feat['type'] = 'Feature'
+                feat['properties'] = props
+                feat['geometry'] = point['geometry']
+            query = {"$and": [{"day": int(time)}, {"simulationId": simulationId}]}
+            mongoClient['output_biouptake'].find_one_and_update(query, {"$push": {"features": feat}})
+        task = mongoClient['task'].find_one({"_id": task['_id']})
+        # task['messages'].append("Processing biouptake batch finished")
+        task['percentage'] = task['percentage'] + 0.09
+        taskDao.update_task(task, task)
+    bqueue.put("Finished")

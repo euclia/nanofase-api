@@ -22,13 +22,16 @@ parser.add_argument('output_type', type=str, help='simulation output type')
 parser.add_argument('x', type=int, help='x value of point')
 parser.add_argument('y', type=int, help='y value of point')
 
+
 scenario_model = simulationsNamespace.model('Simulation', {
     'title': fields.String(description="Scenarios title"),
     'description': fields.String(description="Scenarios description"),
     'userId': fields.String(description='users id'),
     'emissions': fields.List(fields.String, description="Scenarios emissions"),
     'date': fields.Integer(description="Scenarios date of creation"),
-    'taskId': fields.String(description="Task id")
+    'taskId': fields.String(description="Task id"),
+    'pbpk': fields.Boolean(description="Add PBPK outputs"),
+    'pbpkDays': fields.Integer(description="Number of the pbpk simulation days")
 })
 
 task_model = simulationsNamespace.model('Task',{
@@ -135,6 +138,15 @@ class MainClass(Resource):
                 resp = Response(json_util.dumps(out_all))
                 resp.headers["Access-Control-Expose-Headers"] = '*'
                 return resp
+            if output_type == 'biouptake':
+                output = mongoClient['output_biouptake'].find(query)
+                for o in output:
+                    for p in o['features']:
+                        if p['properties']['x'] == x and p['properties']['y'] == y:
+                            out_all.append(p['properties'])
+                resp = Response(json_util.dumps(out_all))
+                resp.headers["Access-Control-Expose-Headers"] = '*'
+                return resp
             if output_type == 'sediment':
                 output = mongoClient['output_sediment'].find(query)
                 for o in output:
@@ -161,6 +173,11 @@ class MainClass(Resource):
                 resp = Response(json_util.dumps(output))
                 resp.headers["Access-Control-Expose-Headers"] = '*'
                 return resp
+            if output_type == 'biouptake':
+                output = mongoClient['output_biouptake'].find_one(query)
+                resp = Response(json_util.dumps(output))
+                resp.headers["Access-Control-Expose-Headers"] = '*'
+                return resp
 
     @simulationsNamespace.doc(responses={200: 'OK', 400: 'Bad request', 500: 'Server Error'}, security='Bearer')
     @simulationsNamespace.expect(scenario_model)
@@ -175,6 +192,12 @@ class MainClass(Resource):
         simulation['userId'] = userid
         simId = randomString(14)
         simulation['_id'] = simId
+
+        pbpkDays = int(simulation['pbpkDays'])
+        if not pbpkDays:
+            simulation['pbpkDays'] = 365
+        if int(pbpkDays) < 365:
+            pbpkDays = 365
 
         task = {}
         task['_id'] = randomString(14)
