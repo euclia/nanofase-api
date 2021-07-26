@@ -4,11 +4,14 @@ from flask import Flask, url_for
 from flask_restx import Api
 h = httplib2.Http(".cache", disable_ssl_certificate_validation=True)
 from flask_cors import CORS
-from src.namespaces.emissions_namespace import emissionNamespace as emissionApi
-from src.namespaces.scenario_namespace import scenariosNamespace as scenarioApi
-from src.namespaces.task_namespace import taskNamespace as taskApi
-from src.namespaces.simulation_namespace import simulationsNamespace as simulationsApi
-from src.globals.globals import oidc, mongoClient
+from namespaces.region_namespace import regionNamespace as regionApi
+from namespaces.chemfate_namespace import simulationsNamespace as simulationsApi
+from namespaces.enm_namespace import enmNamespace as enmApi
+# from src.namespaces.emissions_namespace import emissionNamespace as emissionApi
+# from src.namespaces.scenario_namespace import scenariosNamespace as scenarioApi
+# from src.namespaces.task_namespace import taskNamespace as taskApi
+# from src.namespaces.simulation_namespace import simulationsNamespace as simulationsApi
+from globals.globals import oidc, mongoClient
 import os
 import json
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -17,7 +20,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 # with open('/nanofase-api/src/config/client_s.json') as json_file:
 #     data = json.load(json_file)
 
-with open('/Users/pantelispanka/Jaqpot/NanoSolveit/nanofase-api/src/config/client_s.json') as json_file:
+with open('C:/Users/jason/OneDrive/Documents/GitHub/nanofase-api/src/config/client_s.json') as json_file:
     data = json.load(json_file)
 
 # with open('/conf/client_s.json') as json_file:
@@ -51,7 +54,7 @@ app.config.update({
     'SECRET_KEY': client_secret,
     'TESTING': True,
     'DEBUG': True,
-    'OIDC_CLIENT_SECRETS': "/Users/pantelispanka/Jaqpot/NanoSolveit/nanofase-api/src/config/client_s.json",
+    'OIDC_CLIENT_SECRETS': "C:/Users/jason/OneDrive/Documents/GitHub/nanofase-api/src/config/client_s.json",
     'OIDC_ID_TOKEN_COOKIE_SECURE': False,
     'OIDC_REQUIRE_VERIFIED_EMAIL': False,
     'OIDC_USER_INFO_ENABLED': True,
@@ -95,12 +98,12 @@ nfapi = Api(app=app, version='1.0'
 
 # ddapi.specs_url = specs_url()
 
-nfapi.add_namespace(emissionApi)
-nfapi.add_namespace(scenarioApi)
-nfapi.add_namespace(taskApi)
+# nfapi.add_namespace(emissionApi)
+# nfapi.add_namespace(scenarioApi)
+# nfapi.add_namespace(taskApi)
 nfapi.add_namespace(simulationsApi)
-# ddapi.add_namespace(imageApi)
-# ddapi.add_namespace(taskApi)
+nfapi.add_namespace(regionApi)
+nfapi.add_namespace(enmApi)
 
 oidc.init_app(app)
 
