@@ -495,7 +495,7 @@ def run_simulation(simulation, task, userId):
         taskNew['percentage'] = 22
         task = taskDao.update_task(task, taskNew)
 
-        # subprocess.call([model_path, model_conf_file])
+        subprocess.call([model_path, model_conf_file])
 
         taskNew['messages'].append("Model finished. Processing output")
         task = taskDao.update_task(task, taskNew)
