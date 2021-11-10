@@ -573,6 +573,8 @@ def run_simulation(simulation, task, userId):
 def read(csv_f, simulationId, type, userId, task, queue, pbpk=True):
     project = pyproj.Proj("EPSG:27700")
     point_outputs = []
+
+    LD = [] # jason - scaling - 10/11/2021
     with open(csv_f, newline='', mode='r') as csvfile:
         csv_reader = csv.reader(csvfile)
         i = -1
@@ -630,6 +632,12 @@ def read(csv_f, simulationId, type, userId, task, queue, pbpk=True):
                                                 value[k].append(v)
                                             point_outputs[index] = value
                         mongoClient[type].insert_one(feat_col)
+
+                        # jason - scaling - 10/11/2021 - START
+                        DL = {k: [dic['properties'][k] for dic in feat_col.copy()['features']] for k in feat_col.copy()['features'][0]['properties']}
+                        LD.append(DL)
+                        # jason - scaling - 10/11/2021 - END
+                        
                         taskNew = taskDao.find_one(task)
                         taskNew['simulationKeys'].append(type + "_day_" + str(i))
                         taskNew['percentage'] = task['percentage'] + 0.09
@@ -743,6 +751,23 @@ def read(csv_f, simulationId, type, userId, task, queue, pbpk=True):
         for point in point_outputs:
             point['simulationId'] = simulationId
             mongoClient[type + "_points"].insert_one(point)
+
+    # jason - scaling - 10/11/2021 - START
+    upds = {}
+    for key in DL.keys():
+        arr_2D = np.array([dic[key] for dic in LD]).flatten().tolist()     
+        minimum = min(arr_2D)
+        maximum = max(arr_2D)
+    
+        upds[key] = [minimum,maximum]
+        
+    
+    mongoClient['simulation'].update_one(
+        {"$and": [{"userId": userId}, {"_id": simulationId}]},
+        {"$set": {"minmax.{}".format(type):upds}}
+    )
+    # jason - scaling - 10/11/2021 - END
+    
     queue.put("Finished")
 
 
