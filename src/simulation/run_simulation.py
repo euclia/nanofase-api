@@ -960,7 +960,7 @@ def create_biouptake(chunk, simulationId, bqueue, task):
     
     # jason - scaling - 10/11/2021 - START
     mongoClient['simulation'].update_one(
-        {"$and": [{"_id": simulationId}]},
+        {"_id": simulationId},
         {"$set": {"minmax.output_biouptake":upds}}
     )
     # jason - scaling - 10/11/2021 - END
