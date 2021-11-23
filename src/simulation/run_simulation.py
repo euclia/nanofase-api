@@ -925,6 +925,8 @@ def add_biouptake(task, simulationId, userId, pbpkDays):
 def create_biouptake(chunk, simulationId, bqueue, task):
     jaqpot = Jaqpot('https://modelsbase.cloud.nanosolveit.eu/modelsbase/services/')
     jaqpot.login('pantelispanka', 'kapan2')
+
+    upds = None # jason - scaling - 10/11/2021
     for point in chunk:
         preds, prediction = jaqpot.predict(point['df'], 'YxuV65I02bQkmeY5vWok')
         for index, row in preds.iterrows():
@@ -943,8 +945,23 @@ def create_biouptake(chunk, simulationId, bqueue, task):
                 feat['geometry'] = point['geometry']
             query = {"$and": [{"day": int(time)}, {"simulationId": simulationId}]}
             mongoClient['output_biouptake'].find_one_and_update(query, {"$push": {"features": feat}})
+
+            # jason - scaling - 10/11/2021 - START
+            if not upds:
+                upds = {key:[value,value] for key, value in feat['properties'].items()}
+            else:
+                upds = {key: [min([value[0],feat['properties'][key]]),max([value[1],feat['properties'][key]])] for key, value in upds.items()}
+            # jason - scaling - 10/11/2021 - END
+
         task = mongoClient['task'].find_one({"_id": task['_id']})
         # task['messages'].append("Processing biouptake batch finished")
         task['percentage'] = task['percentage'] + 0.09
         taskDao.update_task(task, task)
+    
+    # jason - scaling - 10/11/2021 - START
+    mongoClient['simulation'].update_one(
+        {"$and": [{"_id": simulationId}]},
+        {"$set": {"minmax.output_biouptake":upds}}
+    )
+    # jason - scaling - 10/11/2021 - END
     bqueue.put("Finished")
