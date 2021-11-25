@@ -955,7 +955,7 @@ def create_biouptake(chunk, simulationId, bqueue, task):
 
         task = mongoClient['task'].find_one({"_id": task['_id']})
         # task['messages'].append("Processing biouptake batch finished")
-        task['percentage'] = task['percentage'] + 0.09
+        task['percentage'] = task['percentage'] + 0.08
         taskDao.update_task(task, task)
     
     # jason - scaling - 10/11/2021 - START
