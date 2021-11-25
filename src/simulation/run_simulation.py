@@ -830,9 +830,10 @@ def task_biouptake_process(task, queues):
     while p:
         for ind, q in enumerate(queues):
             t = q.get()
-            if t[0] == 'Finished':
+            obj = json.loads(t)
+            if obj['status'] == 'Finished':
                 check[ind] = True
-                upds_list.append(t[1])
+                upds_list.append(obj['upds'])
         result = all(ch is True for ch in check)
         if result:
             print("The simulation finished running. Last update for the Task")
@@ -845,7 +846,7 @@ def task_biouptake_process(task, queues):
 
     upds = {k: [min(np.concatenate(list(d[k] for d in upds_list))), max(np.concatenate(list(d[k] for d in upds_list)))] for k in upds_list[0].keys()}
     mongoClient['simulation'].update_one(
-        {"_id": simulationId},
+        {"_id": obj['simId']},
         {"$set": {"minmax.output_biouptake":upds}}
     )
 
@@ -964,11 +965,18 @@ def create_biouptake(chunk, simulationId, bqueue, task):
         # task['messages'].append("Processing biouptake batch finished")
         task['percentage'] = task['percentage'] + 0.08
         taskDao.update_task(task, task)
-    
+
+    upds['status'] = 'Finished'
+    upds['simID'] = 'Finished'
+    ret_json = json.dumps({
+        'status':'Finished',
+        'simI': simulationId,
+        'upds': upds
+    })
     # jason - scaling - 10/11/2021 - START
     # mongoClient['simulation'].update_one(
     #     {"_id": simulationId},
     #     {"$set": {"minmax.output_biouptake":upds}}
     # )
     # jason - scaling - 10/11/2021 - END
-    bqueue.put(["Finished", upds])
+    bqueue.put(ret_json)
