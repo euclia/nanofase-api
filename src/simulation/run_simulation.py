@@ -826,11 +826,13 @@ def task_biouptake_process(task, queues):
     for q in queues:
         check.append(False)
     p = True
+    upds_list = []
     while p:
         for ind, q in enumerate(queues):
             t = q.get()
-            if t == 'Finished':
+            if t[0] == 'Finished':
                 check[ind] = True
+                upds_list.append(t[1])
         result = all(ch is True for ch in check)
         if result:
             print("The simulation finished running. Last update for the Task")
@@ -841,6 +843,11 @@ def task_biouptake_process(task, queues):
             p = False
         break
 
+    upds = {k: [min(np.concatenate(list(d[k] for d in upds_list))), max(np.concatenate(list(d[k] for d in upds_list)))] for k in upds_list[0].keys()}
+    mongoClient['simulation'].update_one(
+        {"_id": simulationId},
+        {"$set": {"minmax.output_biouptake":upds}}
+    )
 
 def safe_transformation(value):
     try:
@@ -959,9 +966,9 @@ def create_biouptake(chunk, simulationId, bqueue, task):
         taskDao.update_task(task, task)
     
     # jason - scaling - 10/11/2021 - START
-    mongoClient['simulation'].update_one(
-        {"_id": simulationId},
-        {"$set": {"minmax.output_biouptake":upds}}
-    )
+    # mongoClient['simulation'].update_one(
+    #     {"_id": simulationId},
+    #     {"$set": {"minmax.output_biouptake":upds}}
+    # )
     # jason - scaling - 10/11/2021 - END
-    bqueue.put("Finished")
+    bqueue.put(["Finished", upds])
