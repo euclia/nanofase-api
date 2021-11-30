@@ -836,19 +836,21 @@ def task_biouptake_process(task, queues):
                 upds_list.append(obj['upds'])
         result = all(ch is True for ch in check)
         if result:
+            print(upds_list)
+            p = False
+            upds = {k: [min([j for i in [d[k] for d in upds_list] for j in i]),
+                        max([j for i in [d[k] for d in upds_list] for j in i])] for k in upds_list[0].keys()}
+            mongoClient['simulation'].update_one(
+                {"_id": obj['simId']},
+                {"$set": {"minmax.output_biouptake": upds}}
+            )
             print("The simulation finished running. Last update for the Task")
             task = mongoClient['task'].find_one({"_id": task['_id']})
             task['messages'].append("Processing outputs finished")
             task['percentage'] = 100.00
             taskDao.update_task(task, task)
-            p = False
         break
 
-    upds = {k: [min(np.concatenate(list(d[k] for d in upds_list))), max(np.concatenate(list(d[k] for d in upds_list)))] for k in upds_list[0].keys()}
-    mongoClient['simulation'].update_one(
-        {"_id": obj['simId']},
-        {"$set": {"minmax.output_biouptake":upds}}
-    )
 
 def safe_transformation(value):
     try:
@@ -966,13 +968,13 @@ def create_biouptake(chunk, simulationId, bqueue, task):
         task['percentage'] = task['percentage'] + 0.08
         taskDao.update_task(task, task)
 
-    upds['status'] = 'Finished'
-    upds['simID'] = 'Finished'
+    # upds['status'] = 'Finished'
+    # upds['simID'] = 'Finished'
     ret_json = json.dumps({
-        'status':'Finished',
-        'simI': simulationId,
+        'status': 'Finished',
+        'simId': simulationId,
         'upds': upds
-    })
+    }, cls=CustomEncoder)
     # jason - scaling - 10/11/2021 - START
     # mongoClient['simulation'].update_one(
     #     {"_id": simulationId},
@@ -980,3 +982,15 @@ def create_biouptake(chunk, simulationId, bqueue, task):
     # )
     # jason - scaling - 10/11/2021 - END
     bqueue.put(ret_json)
+
+
+class CustomEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return super(CustomEncoder, self).default(obj)
