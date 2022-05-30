@@ -76,7 +76,7 @@ class MainClass(Resource):
         if id is None:
             query = {"userId": userid}
             tasks_c = mongoClient['scenario'].find(query).sort([( "properties.date" , -1)]).skip(skip).limit(maximum)
-            total = mongoClient['scenario'].count(query)
+            total = mongoClient['scenario'].count_documents(query)
             emmisions = []
             for t in tasks_c:
                 emmisions.append(json_util.dumps(t))

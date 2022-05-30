@@ -15,29 +15,29 @@ except KeyError as ke:
 try:
     data_path = os.environ['DATA_PATH']
 except KeyError as key:
-    data_path = '/Users/pantelispanka/Jaqpot/NanoSolveit/nanofase-api/src/data'
+    data_path = '/home/upci/Desktop/nanofase-api/src/data'
 
 
 try:
     model_files = os.environ['MODEL_DATA']
 except KeyError as ke:
-    model_files = '/Users/pantelispanka/Jaqpot/NanoSolveit/nanofase-api/src/data/model/data/constants/thames_tio2_2015/'
+    model_files = '/home/upci/Desktop/nanofase-api/src/data/model/data/constants/thames_tio2_2015/'
 
 
 try:
     model_vars = os.environ['MODEL_VARS']
 except KeyError as ke:
-    model_vars = '/Users/pantelispanka/Jaqpot/NanoSolveit/nanofase-api/src/data/model/data/model_vars.yaml'
+    model_vars = '/home/upci/Desktop/nanofase-api/src/data/model/data/model_vars.yaml'
 
 try:
     model_config = os.environ['MODEL_CONFIG']
 except KeyError as ke:
-    model_config = '/Users/pantelispanka/Jaqpot/NanoSolveit/nanofase-api/src/data/config.nml'
+    model_config = '/home/upci/Desktop/nanofase-api/src/data/config.nml'
 
 try:
     model_path = os.environ['MODEL_PATH']
 except KeyError as ke:
-    model_path = '/Users/pantelispanka/Jaqpot/NanoSolveit/nanofase/bin/main'
+    model_path = '/home/upci/Desktop/nanofase/bin/main'
 
 
 oidc = OpenIDConnect()

@@ -35,3 +35,6 @@ src/data/model/data/.DS_Store
 *.zip
 *.tif
 /src/data/TunEwRopmTLHFi/
+/share/
+share/
+

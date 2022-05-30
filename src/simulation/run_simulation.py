@@ -1,4 +1,5 @@
-from src.globals.globals import oidc, mongoClient, data_path, model_files, model_vars, model_config, model_path
+from src.globals.globals import oidc, data_path, model_files, model_vars, model_config, model_path, mongouri
+from src.globals.mongodb import MONGO
 import json
 import csv
 # from convertbng.util import convert_bng, convert_lonlat
@@ -28,14 +29,15 @@ from multiprocessing import Queue, Process
 import pandas as pd
 from jaqpotpy import Jaqpot
 
+mongoClient = MONGO(mongouri=mongouri).init()
 
-taskDao = TaskDao(mongoClient=mongoClient)
 
 
 # export PYTHONPATH="/home/pantelispanka/Jaqpot/nanofase-api"
 
 def run_simulation(simulation, task, userId):
-
+    mongoClient = MONGO(mongouri=mongouri).init()
+    taskDao = TaskDao(mongoClient=mongoClient)
     addPbpk = bool(simulation['pbpk'])
     pbpkDays = int(simulation['pbpkDays'])
     simulationId = simulation['_id']
@@ -99,6 +101,7 @@ def run_simulation(simulation, task, userId):
                         pyproj.Proj(init='epsg:4326'),  # Source coordinate system (WGS84)
                         pyproj.Proj(init='epsg:27700'))  # Destination coordinate system (British National Grid)
                     # Do the transformation
+                    sh_ge = shape(emis['geometry'])
                     geom_transformed = sh.ops.transform(project, shape(emis['geometry']))
                     # i = 0
                     # for j in emis['geometry']['coordinates'][0]:
@@ -118,6 +121,7 @@ def run_simulation(simulation, task, userId):
         for po in point_emissions_pristine:
             po_em_pri = po_em_pri.append(gpd.read_file(po))
         if po_em_pri.empty is False:
+
             to_shape = data_path + "/points/" + "water_pristine_" + simulation['_id'] + ".shp"
             po_em_pri.to_file(to_shape)
             points.append(to_shape)
@@ -178,7 +182,8 @@ def run_simulation(simulation, task, userId):
                 arr = np.full(_shape, fill_value=42.0)
 
                 # Create an affine transformation to use to create raster
-                transform = from_bounds(minx_rounded, miny_rounded, maxx_rounded, maxy_rounded, _shape[1], _shape[2])
+                #transform = from_bounds(minx_rounded, miny_rounded, maxx_rounded, maxy_rounded, _shape[1], _shape[2])
+                transform = from_bounds(minx, miny, maxx, maxy, maxx-minx, maxy-miny)
 
                 # Create out_meta to pass to rasterio when creating the raster
                 out_meta = {
@@ -571,6 +576,8 @@ def run_simulation(simulation, task, userId):
 
 
 def read(csv_f, simulationId, type, userId, task, queue, pbpk=True):
+    mongoClient = MONGO(mongouri=mongouri).init()
+    taskDao = TaskDao(mongoClient=mongoClient)
     project = pyproj.Proj("EPSG:27700")
     point_outputs = []
 
@@ -772,6 +779,8 @@ def read(csv_f, simulationId, type, userId, task, queue, pbpk=True):
 
 
 def task_process(task, t1q, t2q, t3q, simulationId, userId, pbdays, pbpk):
+    mongoClient = MONGO(mongouri=mongouri).init()
+    taskDao = TaskDao(mongoClient=mongoClient)
     p = True
     p1f = False
     p2f = False
@@ -821,6 +830,8 @@ def task_process(task, t1q, t2q, t3q, simulationId, userId, pbdays, pbpk):
 
 
 def task_biouptake_process(task, queues):
+    mongoClient = MONGO(mongouri=mongouri).init()
+    taskDao = TaskDao(mongoClient=mongoClient)
     p = True
     check = []
     for q in queues:
@@ -860,6 +871,8 @@ def safe_transformation(value):
 
 
 def add_biouptake(task, simulationId, userId, pbpkDays):
+    mongoClient = MONGO(mongouri=mongouri).init()
+    taskDao = TaskDao(mongoClient=mongoClient)
     query = {"simulationId": simulationId}
     water_outs = list(mongoClient['output_water_points'].find(query))
     sediment_outs = list(mongoClient['output_sediment_points'].find(query))
@@ -933,6 +946,8 @@ def add_biouptake(task, simulationId, userId, pbpkDays):
 
 
 def create_biouptake(chunk, simulationId, bqueue, task):
+    mongoClient = MONGO(mongouri=mongouri).init()
+    taskDao = TaskDao(mongoClient=mongoClient)
     jaqpot = Jaqpot('https://modelsbase.cloud.nanosolveit.eu/modelsbase/services/')
     jaqpot.login('pantelispanka', 'kapan2')
 

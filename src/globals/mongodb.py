@@ -17,7 +17,7 @@ class MONGO(object):
 
     # @staticmethod
     def init(self):
-        client = pymongo.MongoClient(self.URI)
+        client = pymongo.MongoClient(self.URI, maxPoolSize=None)
         if self.database is not None:
             client = client[self.database]
         else:
@@ -26,7 +26,7 @@ class MONGO(object):
 
     # # @staticmethod
     # def insert(self, collection, data):
-    #     DB.DATABASE[collection].insert(data)
+    #     DB.DATABASE[collection].insert(data)1
 
     # # @staticmethod
     # def find_one(self, collection, query):

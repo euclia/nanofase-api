@@ -103,7 +103,7 @@ class MainClass(Resource):
         if id is None:
             query = {"userId": userid}
             tasks_c = mongoClient['simulation'].find(query).sort([("properties.date", -1)]).skip(skip).limit(maximum)
-            total = mongoClient['simulation'].count(query)
+            total = mongoClient['simulation'].count_documents(query)
             simulations = []
             for t in tasks_c:
                 simulations.append(json_util.dumps(t))
