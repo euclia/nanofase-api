@@ -1,30 +1,32 @@
+
+
 # Setup
-nanomaterial: TiO2
+nanomaterial: TiO2                                    # Name of the nanomaterial. Not used in model.
 output:
-  nc_file: ./data.nc
-  constants_file: ./constants.nml
-constants_file: ./data.example/thames_tio2_2015/constants.yaml
-land_use_config: ./data.example/thames_tio2_2015/land_use.yaml
-root_dir: ./data.example/thames_tio2_2015/
-iso3: GBR
+  nc_file: ./data.nc                                  # Where do you want the output NetCDF file to be stored?
+  constants_file: ./constants.nml                     # Where do you want the output constants file to be stored?
+constants_file: ./data.example/thames_tio2_2015/constants.yaml    # Where is the input constants file?
+land_use_config: ./data.example/thames_tio2_2015/land_use.yaml    # Where is the input land use config file?
+root_dir: ./data.example/thames_tio2_2015/            # Root dir, can be used in path variables below as <root_dir>
+iso3: GBR                                             # iso3 code for country modelled
 time:
-  n: 365
-  dt: 86400
-  start_date: 2015-01-01
+  n: 365                                              # Number of timesteps to run the model for
+  dt: 86400                                           # Length of each timestep in seconds
+  start_date: 2015-01-01                              # Start date for the model run
 
 # Meteorological and hydrological
-flow_dir:
-  type: raster
-  path: <root_dir>flow_dir.tif
-  crs: EPSG:27700
-dem:
-  type: raster
+flow_dir:                                             # Flow direction is responsible for defining the grid system
+  type: raster                                        # Type can be raster or csv (see docs)
+  path: <root_dir>flow_dir.tif                        # Path to file, <root_dir> variable can be used from above
+  crs: EPSG:27700                                     # Manually specify CRS if it is absent or ill-defined in file
+dem:                                                  # Digital Elevation Model, which defines the height above sea level
+  type: raster                                        # of each grid cell, in metres
   units: dm
   path: <root_dir>dem.grd
-runoff:
+runoff:                                               # Runoff, usually provided by a hydrological model
   type: csv
   path: <root_dir>runoff.csv
-  units: mm/day
+  units: mm/day                                       # What units is the file in? These will be converted automatically by Pint: https://pint.readthedocs.io/en/0.10.1/
 quickflow:
   type: csv
   path: <root_dir>quickflow.csv
@@ -142,7 +144,7 @@ emissions_areal_water_transformed:
   type: raster
   path: <root_dir>emissions_areal_water_transformed.tif
   units: kg/m**2/year
-#emissions_areal_water_dissolved:
+#emissions_areal_water_dissolved:                      # Areal emissions of dissolved NM to water
 #    type: raster
 #    path: <root_dir>emissions_areal_water_dissolved.tif
 #    units: kg/m**2/year
@@ -181,7 +183,7 @@ emissions_point_water_transformed:
     for_source_type: P2
     factor_col: Factor
   units: kg/year
-#emissions_point_water_dissolved:
+#emissions_point_water_dissolved:                      # Point source emissions of dissolved NM to water
 #  type: shapefile
 #  value_var: emission
 #  path: <root_dir>point_sources_water_dissolved.shp

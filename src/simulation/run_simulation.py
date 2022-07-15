@@ -29,11 +29,14 @@ from multiprocessing import Queue, Process
 import pandas as pd
 from jaqpotpy import Jaqpot
 
+
 mongoClient = MONGO(mongouri=mongouri).init()
 
 
 
 # export PYTHONPATH="/home/pantelispanka/Jaqpot/nanofase-api"
+
+
 
 def run_simulation(simulation, task, userId):
     mongoClient = MONGO(mongouri=mongouri).init()
@@ -168,32 +171,48 @@ def run_simulation(simulation, task, userId):
                 area = json.load(f)
                 geom = shape(area['geometry'])
                 res = 5000
-
+                res2 = 5000
                 # Get the bounds of the Shapely polygon, used to set the height/width of raster
                 minx, miny, maxx, maxy = geom.bounds
                 # Assume we want all pixels (cells) touched by the polygon, so round the min and max coords to encompass these
-                minx_rounded = minx - minx % res
-                maxx_rounded = maxx + (res - maxx) % res
+                minx_rounded = minx - minx % res2
+                maxx_rounded = maxx + (res2 - maxx) % res2
                 miny_rounded = miny - miny % res
                 maxy_rounded = maxy + (res - maxy) % res
-                _shape = (1, int((maxx_rounded - minx_rounded) / res), int((maxy_rounded - miny_rounded) / res))
-
+                # minx_rounded = round(minx)
+                # maxx_rounded = round(maxx)
+                # miny_rounded = round(miny)
+                # maxy_rounded = round(maxy)
+                _shape = (1, int((maxx_rounded - minx_rounded) / res2), int((maxy_rounded - miny_rounded) / res))
+                shaper = (1, (_shape[2])*res, (_shape[1])*res2 )
                 # Create an array with these dimensions and fill with a constant value
-                arr = np.full(_shape, fill_value=42.0)
+                arr = np.full(shaper, fill_value=float(area['properties']['emission']))
 
                 # Create an affine transformation to use to create raster
                 #transform = from_bounds(minx_rounded, miny_rounded, maxx_rounded, maxy_rounded, _shape[1], _shape[2])
-                transform = from_bounds(minx, miny, maxx, maxy, maxx-minx, maxy-miny)
+                transform = from_bounds(minx_rounded, miny_rounded, maxx_rounded, maxy_rounded, _shape[1], _shape[2])
 
                 # Create out_meta to pass to rasterio when creating the raster
                 out_meta = {
                     "driver": "GTiff",
-                    "height": _shape[1],
-                    "width": _shape[2],
+                    "width": _shape[1],
+                    "height": _shape[2],
                     "transform": transform,
                     "count": 1,
                     "dtype": arr.dtype,
-                    "crs": 'EPSG:27700'
+                    "crs": 'EPSG:27700',
+                    "compress": "LZW"
+                }
+
+                out_meta2 = {
+                    "driver": "GTiff",
+                    "height": (_shape[1])*5000,
+                    "width": (_shape[2])*5000,
+                    "transform": transform,
+                    "count": 1,
+                    "dtype": arr.dtype,
+                    "crs": 'EPSG:27700',
+                    "compress": "LZW"
                 }
                 ar_em_a = ar_em.split("/")
                 ar_id = ar_em_a[len(ar_em_a)-1].split(".")[0]
@@ -224,17 +243,30 @@ def run_simulation(simulation, task, userId):
                     areal_emissions_dissolved_soil.append(output_tiff)
 
         tiffs_ds = []
+        # bounds_lr_ds = []
+        # bounds_tb_ds = []
         for aeds in areal_emissions_dissolved_soil:
             tif = rasterio.open(aeds)
             tiffs_ds.append(tif)
+            # bounds_lr_ds.append(tif.bounds.left)
+            # bounds_lr_ds.append(tif.bounds.right)
+            # bounds_tb_ds.append(tif.bounds.top)
+            # bounds_tb_ds.append(tif.bounds.bottom)
+            # minblr_ds = min(bounds_lr_ds)
+            # maxblr_ds = max(bounds_lr_ds)
+            # minbtb_ds = min(bounds_tb_ds)
+            # maxbtb_ds = max(bounds_tb_ds)
         if len(tiffs_ds) > 1:
-            mosaic, out_trans = rio.merge.merge(tiffs_ds)
+            mosaic, out_trans = rio.merge.merge(tiffs_ds, res=(5000, 5000))
+            mshape = mosaic.shape
+
             out_meta.update(
                 {"driver": "GTiff",
-                 "height": mosaic.shape[1],
-                 "width": mosaic.shape[2],
+                 "height": mosaic.shape[2],
+                 "width": mosaic.shape[1],
                  "transform": out_trans,
-                 "crs": 'EPSG:27700'})
+                 "crs": 'EPSG:27700',
+                 "compress": "LZW"})
             out_areal = data_path + "/areal/" + "dissolved_soil_" + simulation['_id'] + ".tif"
             with rasterio.open(out_areal, "w", **out_meta) as dest:
                 dest.write(mosaic)
@@ -243,12 +275,13 @@ def run_simulation(simulation, task, userId):
             _shape, out_trans = rio.open(tiffs_ds[0])
             out_meta = {
                 "driver": "GTiff",
-                "height": _shape[1],
-                "width": _shape[2],
+                "height": _shape[2],
+                "width": _shape[1],
                 "transform": transform,
                 "count": 1,
                 "dtype": arr.dtype,
-                "crs": 'EPSG:27700'
+                "crs": 'EPSG:27700',
+                "compress": "LZW"
             }
             out_areal = data_path + "/areal/" + "dissolved_soil_" + simulation['_id'] + ".tif"
             with rasterio.open(out_areal, "w", **out_meta) as dest:
@@ -256,17 +289,29 @@ def run_simulation(simulation, task, userId):
                 aedst = out_areal
 
         tiffs_dw = []
+        # bounds_lr_dw = []
+        # bounds_tb_dw = []
         for aeds in areal_emissions_dissolved_water:
             tif = rasterio.open(aeds)
             tiffs_dw.append(tif)
+            # bounds_lr_dw.append(tif.bounds.left)
+            # bounds_lr_dw.append(tif.bounds.right)
+            # bounds_tb_dw.append(tif.bounds.top)
+            # bounds_tb_dw.append(tif.bounds.bottom)
+            # minblr_dw = min(bounds_lr_dw)
+            # maxblr_dw = max(bounds_lr_dw)
+            # minbtb_dw = min(bounds_tb_dw)
+            # maxbtb_dw = max(bounds_tb_dw)
         if len(tiffs_dw) > 1:
-            mosaic, out_trans = rio.merge.merge(tiffs_dw)
+            mosaic, out_trans = rio.merge.merge(tiffs_dw, res=(5000, 5000))
+            mshape = mosaic.shape
             out_meta.update(
                 {"driver": "GTiff",
-                 "height": mosaic.shape[1],
-                 "width": mosaic.shape[2],
+                 "height": mosaic.shape[2],
+                 "width": mosaic.shape[1],
                  "transform": out_trans,
-                 "crs": 'EPSG:27700'})
+                 "crs": 'EPSG:27700',
+                 "compress": "LZW"})
             out_areal = data_path + "/areal/" + "dissolved_water_" + simulation['_id'] + ".tif"
             with rasterio.open(out_areal, "w", **out_meta) as dest:
                 dest.write(mosaic)
@@ -278,17 +323,29 @@ def run_simulation(simulation, task, userId):
             shutil.copy(srcf, out_areal)
             aedwt = out_areal
         tiffs_ms = []
+        # bounds_lr_ms = []
+        # bounds_tb_ms = []
         for aeds in areal_emissions_matrix_soil:
             tif = rasterio.open(aeds)
             tiffs_ms.append(tif)
+            # bounds_lr_ms.append(tif.bounds.left)
+            # bounds_lr_ms.append(tif.bounds.right)
+            # bounds_tb_ms.append(tif.bounds.top)
+            # bounds_tb_ms.append(tif.bounds.bottom)
+            # minblr_ms = min(bounds_lr_ms)
+            # maxblr_ms = max(bounds_lr_ms)
+            # minbtb_ms = min(bounds_tb_ms)
+            # maxbtb_ms = max(bounds_tb_ms)
         if len(tiffs_ms) > 1:
-            mosaic, out_trans = rio.merge.merge(tiffs_ms)
+            mosaic, out_trans = rio.merge.merge(tiffs_ms, res=(5000, 5000))
+            mshape = mosaic.shape
             out_meta.update(
                 {"driver": "GTiff",
-                 "height": mosaic.shape[1],
-                 "width": mosaic.shape[2],
+                 "height": mosaic.shape[2],
+                 "width": mosaic.shape[1],
                  "transform": out_trans,
-                 "crs": 'EPSG:27700'})
+                 "crs": 'EPSG:27700',
+                 "compress": "LZW"})
             out_areal = data_path + "/areal/" + "matrix_soil_" + simulation['_id'] + ".tif"
             with rasterio.open(out_areal, "w", **out_meta) as dest:
                 dest.write(mosaic)
@@ -301,17 +358,29 @@ def run_simulation(simulation, task, userId):
             aemst = out_areal
 
         tiffs_mw = []
+        # bounds_lr_mw =[]
+        # bounds_tb_mw =[]
         for aeds in areal_emissions_matrix_water:
             tif = rasterio.open(aeds)
             tiffs_mw.append(tif)
+            # bounds_lr_mw.append(tif.bounds.left)
+            # bounds_lr_mw.append(tif.bounds.right)
+            # bounds_tb_mw.append(tif.bounds.top)
+            # bounds_tb_mw.append(tif.bounds.bottom)
+            # minblr_mw = min(bounds_lr_mw)
+            # maxblr_mw = max(bounds_lr_mw)
+            # minbtb_mw = min(bounds_tb_mw)
+            # maxbtb_mw = max(bounds_tb_mw)
         if len(tiffs_mw) > 1:
-            mosaic, out_trans = rio.merge.merge(tiffs_mw)
+            mosaic, out_trans = rio.merge.merge(tiffs_mw, res=(5000, 5000))
+            mshape = mosaic.shape
             out_meta.update(
                 {"driver": "GTiff",
-                 "height": mosaic.shape[1],
-                 "width": mosaic.shape[2],
+                 "height": mosaic.shape[2],
+                 "width": mosaic.shape[1],
                  "transform": out_trans,
-                 "crs": 'EPSG:27700'})
+                 "crs": 'EPSG:27700',
+                 "compress": "LZW"})
             out_areal = data_path + "/areal/" + "matrix_water_" + simulation['_id'] + ".tif"
             with rasterio.open(out_areal, "w", **out_meta) as dest:
                 dest.write(mosaic)
@@ -324,17 +393,37 @@ def run_simulation(simulation, task, userId):
             aemwt = out_areal
 
         tiffs_ps = []
+        # bounds_lr_ps = []
+        # bounds_tb_ps = []
         for aeds in areal_emissions_pristine_soil:
             tif = rasterio.open(aeds)
+
             tiffs_ps.append(tif)
+            # bounds_lr_ps.append(tif.bounds.left)
+            # bounds_lr_ps.append(tif.bounds.left+(tif.bounds.right-tif.bounds.left)*5000)
+            # bounds_tb_ps.append(tif.bounds.top)
+            # bounds_tb_ps.append(tif.bounds.top-(tif.bounds.top-tif.bounds.bottom)*5000)
+            # minblr_ps = min(bounds_lr_ps)
+            # maxblr_ps = max(bounds_lr_ps)
+            # minbtb_ps = min(bounds_tb_ps)
+            # maxbtb_ps = max(bounds_tb_ps)
+            #
+            # minx_rounded_ps = minblr_ps - minblr_ps % 5000
+            # maxx_rounded_ps = maxblr_ps + (5000 - maxblr_ps) % 5000
+            # miny_rounded_ps = minbtb_ps - minbtb_ps % 5000
+            # maxy_rounded_ps = maxbtb_ps + (5000 - maxbtb_ps) % 5000
+
         if len(tiffs_ps) > 1:
-            mosaic, out_trans = rio.merge.merge(tiffs_ps)
+
+            mosaic, out_trans = rio.merge.merge(tiffs_ps, res=(5000, 5000))
+            mshape = mosaic.shape
             out_meta.update(
                 {"driver": "GTiff",
-                 "height": mosaic.shape[1],
-                 "width": mosaic.shape[2],
+                 "height": mosaic.shape[2],
+                 "width": mosaic.shape[1],
                  "transform": out_trans,
-                 "crs": 'EPSG:27700'})
+                 "crs": 'EPSG:27700',
+                 "compress": "LZW"})
             out_areal = data_path + "/areal/" + "pristine_soil_" + simulation['_id'] + ".tif"
             with rasterio.open(out_areal, "w", **out_meta) as dest:
                 dest.write(mosaic)
@@ -352,10 +441,11 @@ def run_simulation(simulation, task, userId):
         if len(tiffs_pw) > 1:
             out_meta.update(
                 {"driver": "GTiff",
-                 "height": mosaic.shape[1],
-                 "width": mosaic.shape[2],
+                 "height": mosaic.shape[2],
+                 "width": mosaic.shape[1],
                  "transform": out_trans,
-                 "crs": 'EPSG:27700'})
+                 "crs": 'EPSG:27700',
+                 "compress": "LZW"})
             out_areal = data_path + "/areal/" + "pristine_water_" + simulation['_id'] + ".tif"
             with rasterio.open(out_areal, "w", **out_meta) as dest:
                 dest.write(mosaic)
@@ -368,17 +458,29 @@ def run_simulation(simulation, task, userId):
             aepwt = out_areal
 
         tiffs_ts = []
+        # bounds_lr_ts = []
+        # bounds_tb_ts = []
         for aeds in areal_emissions_transformed_soil:
             tif = rasterio.open(aeds)
             tiffs_ts.append(tif)
+            # bounds_lr_ts.append(tif.bounds.left)
+            # bounds_lr_ts.append(tif.bounds.right)
+            # bounds_tb_ts.append(tif.bounds.top)
+            # bounds_tb_ts.append(tif.bounds.bottom)
+            # minblr_ts = min(bounds_lr_ts)
+            # maxblr_ts = max(bounds_lr_ts)
+            # minbtb_ts = min(bounds_tb_ts)
+            # maxbtb_ts = max(bounds_tb_ts)
         if len(tiffs_ts) > 1:
-            mosaic, out_trans = rio.merge.merge(tiffs_ts)
+            mosaic, out_trans = rio.merge.merge(tiffs_ts, res=(5000, 5000))
+            mshape = mosaic.shape
             out_meta.update(
                 {"driver": "GTiff",
-                 "height": mosaic.shape[1],
-                 "width": mosaic.shape[2],
+                 "height": mosaic.shape[2],
+                 "width": mosaic.shape[1],
                  "transform": out_trans,
-                 "crs": 'EPSG:27700'})
+                 "crs": 'EPSG:27700',
+                 "compress": "LZW"})
             out_areal = data_path + "/areal/" + "transformed_soil_" + simulation['_id'] + ".tif"
             with rasterio.open(out_areal, "w", **out_meta) as dest:
                 dest.write(mosaic)
@@ -390,17 +492,29 @@ def run_simulation(simulation, task, userId):
             shutil.copy(srcf, out_areal)
             aetst = out_areal
         tiffs_tw = []
+        # bounds_lr_tw = []
+        # bounds_tb_tw = []
         for aeds in areal_emissions_transformed_water:
             tif = rasterio.open(aeds)
             tiffs_tw.append(tif)
+            # bounds_lr_tw.append(tif.bounds.left)
+            # bounds_lr_tw.append(tif.bounds.right)
+            # bounds_tb_tw.append(tif.bounds.top)
+            # bounds_tb_tw.append(tif.bounds.bottom)
+            # minblr_tw = min(bounds_lr_tw)
+            # maxblr_tw = max(bounds_lr_tw)
+            # minbtb_tw = min(bounds_tb_tw)
+            # maxbtb_tw = max(bounds_tb_tw)
         if len(tiffs_tw) > 1:
-            mosaic, out_trans = rio.merge.merge(tiffs_tw)
+            mosaic, out_trans = rio.merge.merge(tiffs_tw, res=(5000, 5000))
+            mshape = mosaic.shape
             out_meta.update(
                 {"driver": "GTiff",
-                 "height": mosaic.shape[1],
-                 "width": mosaic.shape[2],
+                 "height": mosaic.shape[2],
+                 "width": mosaic.shape[1],
                  "transform": out_trans,
-                 "crs": 'EPSG:27700'})
+                 "crs": 'EPSG:27700',
+                 "compress": "LZW"})
             out_areal = data_path + "/areal/" + "transformed_water_" + simulation['_id'] + ".tif"
             with rasterio.open(out_areal, "w", **out_meta) as dest:
                 dest.write(mosaic)

@@ -14,14 +14,14 @@ import json
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 
-with open('./config/client_s.json') as json_file:
-    data = json.load(json_file)
+with open('/nanofase-api/src/config/client_s.json') as json_file:
+     data = json.load(json_file)
 
 # with open('/Users/pantelispanka/Jaqpot/NanoSolveit/nanofase-api/src/config/client_s.json') as json_file:
 #     data = json.load(json_file)
 
 # with open('/conf/client_s.json') as json_file:
-#     data = json.load(json_file)
+#      data = json.load(json_file)
 
 
 
@@ -38,7 +38,7 @@ app.config.update({
     'SECRET_KEY': client_secret,
     'TESTING': True,
     'DEBUG': True,
-    'OIDC_CLIENT_SECRETS': "./config/client_s.json",
+    'OIDC_CLIENT_SECRETS': "/nanofase-api/src/config/client_s.json",
     'OIDC_ID_TOKEN_COOKIE_SECURE': False,
     'OIDC_REQUIRE_VERIFIED_EMAIL': False,
     'OIDC_USER_INFO_ENABLED': True,

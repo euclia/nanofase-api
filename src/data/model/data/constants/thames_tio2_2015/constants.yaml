@@ -36,7 +36,8 @@ water:
 sediment:
   initial_mass: [0.00863, 0.019537, 0.323944, 0.323944, 0.323944] # Initial mass of each sediment size class in the layer [kg/m2]
   porosity: [0.8, 0.6, 0.4, 0.2]                                  # Porosity of each sediment layer
-  fractional_composition_distribution: [0.3, 0.3, 0.3, 0.1]       # Distribution of sediment amongst fractional composition bins (same for each size class)
+#fractional_composition_distribution: [0.3, 0.3, 0.3, 0.1]       # Distribution of sediment amongst fractional composition bins (same for each size class)
+  fractional_composition_distribution: [0.5, 0.5]
   default_spm_size_distribution: [50, 30, 10, 7, 3]               # Default sediment size class distribution to impose
   default_matrixembedded_distribution_to_spm: [20, 20, 20, 20, 20] # Default matrix embedded distribution to SPM to impose
   spm_density_by_size_class: [1700, 2600, 2600, 1700, 1300]       # Density of SPM in each size class [kg/m3]

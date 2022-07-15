@@ -17,7 +17,7 @@ RUN apt-get update && \
         libnetcdff-dev
 
 
-# Install python 3.8
+# Install python 3.7
 RUN apt-get update && apt-get upgrade -y
 RUN apt install -y build-essential \
     zlib1g-dev \
@@ -32,11 +32,11 @@ RUN apt install -y build-essential \
     liblzma-dev
 
 
-RUN curl -O https://www.python.org/ftp/python/3.8.0/Python-3.8.0.tar.xz
-RUN tar -xf Python-3.8.0.tar.xz
-RUN cd Python-3.8.0 && \
+RUN curl -O https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tar.xz
+RUN tar -xf Python-3.7.0.tar.xz
+RUN cd Python-3.7.0 && \
     ./configure  --enable-optimizations
-RUN cd Python-3.8.0 && \
+RUN cd Python-3.7.0 && \
     make && \
     make altinstall
 
@@ -47,7 +47,7 @@ RUN apt update && \
 
 RUN cd /
 # Clone NanoFASE repo, create Makefile and a few required directories
-RUN git clone -b 0.0.1 --recurse-submodules https://${GITHUB_ACCESS_TOKEN}@github.com/nerc-ceh/nanofase.git && \
+RUN git clone -b 0.0.4 --recurse-submodules https://github.com/nerc-ceh/nanofase.git && \
     cd nanofase && \
     cp Makefile.example Makefile && \
     mkdir ./bin && \
@@ -62,13 +62,14 @@ RUN mkdir nanofase-api
 
 COPY ./requirements /nanofase-api
 
-RUN python3.8 -m pip install -r nanofase-api/requirements
+RUN python3.7 -m pip install --upgrade pip
+RUN python3.7 -m pip install -r nanofase-api/requirements
 
 COPY ./src/ /nanofase-api/src
 
 EXPOSE 5000
 
-#RUN cd /nanofase-api
+#RUN cd /home/upci/Desktop/nanofase-api
 ENV PYTHONPATH='nanofase-api'
 
 ENV DATA_PATH='/nanofase-api/src/data'
@@ -78,4 +79,4 @@ ENV MODEL_CONFIG='/nanofase-api/src/data/config.nml'
 ENV MODEL_PATH='/nanofase/bin/main'
 ENV GDAL_DATA='/usr/share/gdal'
 
-CMD ["python3.8", "nanofase-api/src/app.py" ]
+CMD ["python3.7", "nanofase-api/src/app.py" ]

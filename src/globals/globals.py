@@ -37,7 +37,7 @@ except KeyError as ke:
 try:
     model_path = os.environ['MODEL_PATH']
 except KeyError as ke:
-    model_path = '/home/upci/Desktop/nanofase/bin/main'
+    model_path = '/home/upci/Desktop/nanophase2/nanofase/bin/main'
 
 
 oidc = OpenIDConnect()

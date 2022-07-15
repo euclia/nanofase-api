@@ -5,6 +5,7 @@ from src.globals.globals import oidc, mongoClient
 from functools import wraps
 from bson import json_util, ObjectId
 import json
+import traceback
 
 emissionNamespace = Namespace('emission')
 
@@ -73,34 +74,37 @@ class MainClass(Resource):
     @token_required
     # @taskNamespace.marshal_with(task_model, as_list=True)
     def get(self,):
-        args = parser.parse_args()
-        id = args.get('id')
-        skip = args.get('skip')
-        maximum = args.get('maximum')
-        if skip is None:
-            skip = 0
-        if maximum is None:
-            maximum = 20
-        token = request.headers['Authorization']
-        token = token.split(" ")[1]
-        userid = oidc.user_getfield('sub', token)
-        if id is None:
-            query = {"userId": userid}
-            tasks_c = mongoClient['emission'].find(query).sort([( "properties.date" , -1)]).skip(skip).limit(maximum)
-            total = mongoClient['emission'].count_documents(query)
-            emmisions = []
-            for t in tasks_c:
-                emmisions.append(json_util.dumps(t))
-            resp = Response(json.dumps(emmisions))
-            resp.headers["Access-Control-Expose-Headers"] = '*'
-            resp.headers["total"] = total
-            return resp
-        else:
-            query = {"_id": id}
-            task = mongoClient['emission'].find_one(query)
-            resp = Response(json_util.dumps(task))
-            resp.headers["Access-Control-Expose-Headers"] = '*'
-            return resp
+        try:
+            args = parser.parse_args()
+            id = args.get('id')
+            skip = args.get('skip')
+            maximum = args.get('maximum')
+            if skip is None:
+                skip = 0
+            if maximum is None:
+                maximum = 20
+            token = request.headers['Authorization']
+            token = token.split(" ")[1]
+            userid = oidc.user_getfield('sub', token)
+            if id is None:
+                query = {"userId": userid}
+                tasks_c = mongoClient['emission'].find(query).sort([( "properties.date" , -1)]).skip(skip).limit(maximum)
+                total = mongoClient['emission'].count_documents(query)
+                emmisions = []
+                for t in tasks_c:
+                    emmisions.append(json_util.dumps(t))
+                resp = Response(json.dumps(emmisions))
+                resp.headers["Access-Control-Expose-Headers"] = '*'
+                resp.headers["total"] = total
+                return resp
+            else:
+                query = {"_id": id}
+                task = mongoClient['emission'].find_one(query)
+                resp = Response(json_util.dumps(task))
+                resp.headers["Access-Control-Expose-Headers"] = '*'
+                return resp
+        except:
+            traceback.print_exc()
 
     @emissionNamespace.doc(responses={200: 'OK', 400: 'Bad request', 500: 'Server Error'}, security='Bearer')
     @emissionNamespace.expect(emission_model)

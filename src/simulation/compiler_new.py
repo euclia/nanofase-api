@@ -116,8 +116,9 @@ class Compiler:
               '\t...parsing flow_dir')
         self.parse_flow_dir()
         print('\t...creating NetCDF file')
-        self.setup_netcdf_dataset()
-        self.parse_spatial_var('is_estuary', save=True)
+        #self.setup_netcdf_dataset()
+        print(self.setup_netcdf_dataset())
+        print(self.parse_spatial_var('is_estuary', save=True))
         self.vars_spatial.remove('is_estuary')  # Make sure we don't create is_estuary twice
         print('\t...routing water bodies')
         self.routing()
@@ -130,7 +131,8 @@ class Compiler:
         for var in self.vars_spatial:
             print("parse_spatial_var")
             print(f'\t...{var}')
-            self.parse_spatial_var(var)
+
+            print(self.parse_spatial_var(var))
         # Spatial data with 1 record dimension (that isn't time)
         for var in self.vars_spatial_1d:
             print("parse_spatial_1d_var")
@@ -241,6 +243,8 @@ class Compiler:
         y.standard_name = 'projection_y_coordinate'
         y.axis = 'Y'
         y[:] = [self.grid.bounds.top - i * self.grid.res[1] - 0.5 * self.grid.res[1] for i in range(self.grid.height)]
+        # y[:] = [self.grid.bounds.top - i * self.grid.res[1]  for i in range(self.grid.height)]
+
         # Grid dimension (2D), max number of waterbodies per cell and grid bounds
         d_dim = self.nc.createDimension('d', 2)
         w_dim = self.nc.createDimension('w', 7)
@@ -268,7 +272,7 @@ class Compiler:
         nc_var = self.nc.createVariable('flow_dir', 'i4', ('y', 'x'))
         nc_var.long_name = 'flow direction of water in grid cell'
         nc_var[:] = self.flow_dir
-
+        return self.grid.res[1], self.grid.bounds.top, range(self.grid.height), y[:]
     def setup_netcdf_var(self, var_name, extra_dims=None, coords_sidecar=False):
         var_dict = self.vars[var_name]
         fill_value = float(var_dict['fill_value']) if 'fill_value' in var_dict else None
@@ -336,10 +340,16 @@ class Compiler:
         if out_bounds.left > self.grid.bounds.left or out_bounds.right < self.grid.bounds.right \
                 or out_bounds.top < self.grid.bounds.top or out_bounds.bottom > self.grid.bounds.bottom:
             # Get the xy pixel within the grid box of the input raster bounds
-            out_ij_within_grid = rasterio.transform.rowcol(self.grid.transform, out_bounds.left, out_bounds.bottom)
+            # out_ij_within_grid = rasterio.transform.rowcol(self.grid.transform, out_bounds.left, out_bounds.bottom)
+            out_ij_within_grid = rasterio.transform.rowcol(self.grid.transform, out_bounds.left, out_bounds.top)
             # Create an array of grid shape and set all pixels to zero
             out_arr = np.zeros(self.grid.shape)
             # Overwrite the relevant pixels from out_img
+            # s1 = out_ij_within_grid[0]
+            # s2 = out_img[0].shape[0]
+            # s3 = out_ij_within_grid[1]
+            # s4 = out_img[0].shape[1]
+            # s5 = out_img[0]
             out_arr[out_ij_within_grid[0]:out_ij_within_grid[0] + out_img[0].shape[0],
             out_ij_within_grid[1]:out_ij_within_grid[1] + out_img[0].shape[1]] = out_img[0]
             # Set any values equal to 0 to mask
@@ -390,6 +400,7 @@ class Compiler:
         else:
             print("Unrecognised file type {0} for variable {1}. Type should be raster, csv or nc.".format(
                 var_dict['type'], var_name))
+        return values, nc_var, var_dict
 
     def parse_spatial_point_var(self, var_name):
         # Get the var dict, but don't create the NetCDF var yet as we need to parse data before
